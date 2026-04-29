@@ -1043,6 +1043,54 @@
     return Math.max(0, hi - lo);
   }
 
+  /** 依頼の作成日時を Asia/Tokyo の暦月として YYYY-MM に変換（画面上の # は月ごとに 1 から） */
+  function yearMonthTokyo(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '';
+    try {
+      const s = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Tokyo',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).format(d);
+      return s.length >= 7 ? s.slice(0, 7) : '';
+    } catch {
+      return '';
+    }
+  }
+
+  /** 各依頼 id → その日本時間の月内での表示番号（1 起点）。翌月はまた 1 から。 */
+  function buildRequestMonthSeqIndex(requests) {
+    const idToSeq = new Map();
+    const list = Array.isArray(requests) ? [...requests] : [];
+    list.sort((a, b) => {
+      const ta = new Date(a.createdAt || 0).getTime();
+      const tb = new Date(b.createdAt || 0).getTime();
+      if (ta !== tb) return ta - tb;
+      return (a.id || 0) - (b.id || 0);
+    });
+    const perMonth = new Map();
+    list.forEach((r) => {
+      const ym = yearMonthTokyo(r.createdAt);
+      if (!ym) {
+        idToSeq.set(r.id, null);
+        return;
+      }
+      const next = (perMonth.get(ym) || 0) + 1;
+      perMonth.set(ym, next);
+      idToSeq.set(r.id, next);
+    });
+    return idToSeq;
+  }
+
+  function displayRequestMonthNum(req, monthSeqById) {
+    if (!monthSeqById.has(req.id)) return req.id;
+    const v = monthSeqById.get(req.id);
+    return v === null || v === undefined ? req.id : v;
+  }
+
   function badgeHtml(req) {
     const st = req.status;
     let cls = '';
@@ -1071,6 +1119,7 @@
     const list = $('#hr-list');
     const pendingOnly = $('#hr-filter-pending').checked;
     const reqs = state.requests.filter((r) => !pendingOnly || r.status === 'pending');
+    const monthSeqById = buildRequestMonthSeqIndex(state.requests);
     if (!reqs.length) {
       list.innerHTML = `<div class="empty-state">${escapeHtml(tr('hrEmpty'))}</div>`;
       return;
@@ -1100,7 +1149,7 @@
             : '';
         return `
           <div class="request-item">
-            <div class="meta">#${req.id} · ${escapeHtml(name)} · ${badgeHtml(req)} · ${req.createdAt ? req.createdAt.slice(0, 16).replace('T', ' ') : ''}</div>
+            <div class="meta">#${displayRequestMonthNum(req, monthSeqById)} · ${escapeHtml(name)} · ${badgeHtml(req)} · ${req.createdAt ? req.createdAt.slice(0, 16).replace('T', ' ') : ''}</div>
             <div class="body">${escapeHtml(slotsTxt)}${escapeHtml(raw)}</div>
             ${req.reviewerNote ? `<div class="hint">${escapeHtml(tr('adminNotePrefix'))} ${escapeHtml(req.reviewerNote)}</div>` : ''}
             ${pendingActions}
