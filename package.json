@@ -1,0 +1,16 @@
+{
+  "name": "short-shift-manager",
+  "version": "1.0.0",
+  "description": "短期アルバイトの勤務希望・シフト・現場確認",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "mongodb": "^6.12.0"
+  }
+}

@@ -1,0 +1,17 @@
+# Render Blueprint（GitHub と連携するとダッシュボードで読み込めます）
+# 事前準備:
+# 1. MongoDB Atlas で無料クラスターを作成し、Network Access で「どこからでも」(0.0.0.0/0) を許可（または Render の外向き IP のみ）
+# 2. Database Access でユーザー作成
+# 3. 接続文字列をコピーし、Render の Environment に MONGODB_URI を追加（このファイルには書かない）
+
+services:
+  - type: web
+    name: short-shift-manager
+    runtime: node
+    plan: free
+    region: singapore
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
