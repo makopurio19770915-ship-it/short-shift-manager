@@ -73,6 +73,9 @@
       flex-wrap: wrap;
     }
     .tab-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
       padding: 12px 14px;
       border: none;
       background: none;
@@ -85,6 +88,21 @@
     }
     .tab-btn:hover { color: var(--primary); }
     .tab-btn.active { color: var(--primary-dark); border-bottom-color: var(--primary); }
+    .tab-unread-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 18px;
+      height: 18px;
+      padding: 0 5px;
+      font-size: 11px;
+      font-weight: 600;
+      line-height: 1;
+      color: #fff;
+      background: #dc2626;
+      border-radius: 999px;
+      flex-shrink: 0;
+    }
 
     .main { max-width: 1100px; margin: 0 auto; padding: 20px 16px 48px; }
     .tab-panel { display: none; }
@@ -339,7 +357,10 @@
 
   <nav class="tabs">
     <button type="button" class="tab-btn active" data-tab="request" id="tab-request">勤務希望を送る</button>
-    <button type="button" class="tab-btn" data-tab="hr" id="tab-hr">管理者・依頼一覧</button>
+    <button type="button" class="tab-btn" data-tab="hr" id="tab-hr">
+      <span id="tab-hr-label">管理者・依頼一覧</span>
+      <span class="tab-unread-badge" id="hr-unread-badge" hidden aria-live="polite">0</span>
+    </button>
     <button type="button" class="tab-btn" data-tab="master" id="tab-master">ワーカーマスタ</button>
     <button type="button" class="tab-btn" data-tab="schedule" id="tab-schedule">シフト作成</button>
     <button type="button" class="tab-btn" data-tab="site" id="tab-site">現場確認</button>
@@ -787,7 +808,7 @@
     $('#ui-page-title').textContent = tr('pageTitle');
     $('#ui-page-sub').textContent = tr('pageSub');
     $('#tab-request').textContent = tr('tab_request');
-    $('#tab-hr').textContent = tr('tab_hr');
+    $('#tab-hr-label').textContent = tr('tab_hr');
     $('#tab-master').textContent = tr('tab_master');
     $('#tab-schedule').textContent = tr('tab_schedule');
     $('#tab-site').textContent = tr('tab_site');
@@ -1385,6 +1406,21 @@
     });
   }
 
+  function updateHrUnreadBadge() {
+    const el = $('#hr-unread-badge');
+    if (!el) return;
+    const n = (state.requests || []).filter((r) => r.status === 'pending' && r.adminUnread !== false).length;
+    if (n <= 0) {
+      el.hidden = true;
+      el.textContent = '0';
+      el.removeAttribute('title');
+      return;
+    }
+    el.hidden = false;
+    el.textContent = n > 99 ? '99+' : String(n);
+    el.title = lang === 'vi' ? `${n} đơn chưa xem` : `未読の申請が${n}件`;
+  }
+
   function renderAll() {
     applyStaticUi();
     renderMaster();
@@ -1392,14 +1428,24 @@
     renderScheduleTable();
     renderDeptManagePanel();
     renderSite();
+    updateHrUnreadBadge();
   }
 
   document.querySelectorAll('.tab-btn').forEach((btn) => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', async () => {
       document.querySelectorAll('.tab-btn').forEach((b) => b.classList.remove('active'));
       document.querySelectorAll('.tab-panel').forEach((p) => p.classList.remove('active'));
       btn.classList.add('active');
       $('#panel-' + btn.dataset.tab).classList.add('active');
+      if (btn.dataset.tab === 'hr') {
+        try {
+          await api('POST', '/api/mark-hr-seen', {});
+          await refreshState();
+        } catch (e) {
+          console.error(e);
+          updateHrUnreadBadge();
+        }
+      }
     });
   });
 

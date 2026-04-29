@@ -172,6 +172,7 @@ app.post('/api/requests', (req, res) => {
       slots: normalized,
       rawNote,
       status: 'pending',
+      adminUnread: true,
       adjustedSlots: [],
       reviewerNote: '',
       createdAt: new Date().toISOString(),
@@ -214,6 +215,19 @@ app.patch('/api/requests/:id', (req, res) => {
   })
     .then(async () => res.json(await readState()))
     .catch((e) => res.status(400).json({ error: e.message }));
+});
+
+/** 管理者が「依頼一覧」タブを開いたとき — 申請中の未読フラグをまとめて消す */
+app.post('/api/mark-hr-seen', (req, res) => {
+  enqueueMutation(async () => {
+    const s = await readState();
+    s.requests.forEach((r) => {
+      if (r.status === 'pending') r.adminUnread = false;
+    });
+    await writeState(s);
+  })
+    .then(async () => res.json(await readState()))
+    .catch((e) => res.status(500).json({ error: e.message }));
 });
 
 /** 終了済み依頼のみ削除可（申請中は不可） */
