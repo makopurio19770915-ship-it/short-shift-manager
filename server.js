@@ -13,6 +13,9 @@ const INITIAL_STATE = {
   workers: [],
   requests: [],
   schedules: {},
+  /** ユーザー追加部署 { key: 'ext_1', ja: string, vi: string }[] */
+  extraDepartments: [],
+  nextDeptExtId: 1,
   nextWorkerId: 1,
   nextRequestId: 1,
 };
@@ -230,6 +233,51 @@ function normalizeSlotObj(sl) {
   if (!date || !start || !end) return null;
   return { date, start, end };
 }
+
+/** POST body: { ja: string, vi: string } — 現場プルダウン用の追加部署 */
+app.post('/api/extra-departments', (req, res) => {
+  const ja = String(req.body?.ja ?? '').trim();
+  const vi = String(req.body?.vi ?? '').trim();
+  if (!ja || !vi) {
+    return res.status(400).json({ error: '日本語名とベトナム語名の両方を入力してください。' });
+  }
+  enqueueMutation(async () => {
+    const s = await readState();
+    if (!Array.isArray(s.extraDepartments)) s.extraDepartments = [];
+    if (!s.nextDeptExtId || s.nextDeptExtId < 1) s.nextDeptExtId = 1;
+    const key = `ext_${s.nextDeptExtId++}`;
+    s.extraDepartments.push({ key, ja, vi });
+    await writeState(s);
+  })
+    .then(async () => res.json(await readState()))
+    .catch((e) => res.status(400).json({ error: e.message }));
+});
+
+/** ext_* のみ削除可。使用中の現場メモは未設定に戻す */
+app.delete('/api/extra-departments/:key', (req, res) => {
+  const key = decodeURIComponent(String(req.params.key || ''));
+  if (!key.startsWith('ext_')) {
+    return res.status(400).json({ error: 'この部署は削除できません。' });
+  }
+  enqueueMutation(async () => {
+    const s = await readState();
+    const list = Array.isArray(s.extraDepartments) ? s.extraDepartments : [];
+    const idx = list.findIndex((x) => x.key === key);
+    if (idx < 0) throw new Error('部署が見つかりません。');
+    list.splice(idx, 1);
+    s.extraDepartments = list;
+    Object.keys(s.schedules || {}).forEach((d) => {
+      const sch = s.schedules[d];
+      if (!sch?.deptByWorker) return;
+      Object.keys(sch.deptByWorker).forEach((wid) => {
+        if (sch.deptByWorker[wid] === key) sch.deptByWorker[wid] = '';
+      });
+    });
+    await writeState(s);
+  })
+    .then(async () => res.json(await readState()))
+    .catch((e) => res.status(400).json({ error: e.message }));
+});
 
 /** PUT body: { cells?, published?, deptByWorker?, clearCells? } */
 app.put('/api/schedules/:date', (req, res) => {

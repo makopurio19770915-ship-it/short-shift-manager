@@ -414,6 +414,22 @@
 
     <section id="panel-site" class="tab-panel">
       <div class="card">
+        <div class="card-title" id="card-title-dept-extra">部署メニューの追加（プルダウン）</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="dept-add-ja" id="label-dept-ja">部署名（日本語）</label>
+            <input id="dept-add-ja" type="text" autocomplete="organization-title" />
+          </div>
+          <div class="form-group">
+            <label for="dept-add-vi" id="label-dept-vi">Tên bộ phận（Tiếng Việt）</label>
+            <input id="dept-add-vi" type="text" autocomplete="off" />
+          </div>
+        </div>
+        <button type="button" class="btn btn-primary btn-sm" id="dept-add-btn">追加</button>
+        <p class="hint" id="hint-dept-extra"></p>
+        <div id="dept-extra-list" class="master-tags" style="margin-top:12px;"></div>
+      </div>
+      <div class="card">
         <div class="card-title" id="card-title-site">現場（公開済みシフトの確認・所属のメモ）</div>
         <div class="toolbar">
           <label style="margin:0;display:flex;align-items:center;gap:8px;">
@@ -545,6 +561,15 @@
       csvName: '氏名',
       csvCode: 'コード',
       csvTotal: '合計(H)',
+      deptExtraCardTitle: '部署メニューの追加（プルダウン）',
+      labelDeptJa: '部署名（日本語）',
+      labelDeptVi: 'Tên bộ phận（Tiếng Việt）',
+      deptExtraHint:
+        '追加した部署はすべての人のプルダウンに表示されます。不要になったら一覧から削除できます（削除すると、その部署を選んでいた行は「未設定」に戻ります）。',
+      alertDeptAdded: '部署を追加しました。',
+      alertDeptBothRequired: '日本語名とベトナム語名の両方を入力してください。',
+      confirmDelDept:
+        'この部署を削除しますか？この部署が選ばれていた現場メモは「未設定」に戻ります。',
     },
     vi: {
       pageTitle: 'Ca ngắn hạn · Quản lý ca làm',
@@ -638,6 +663,15 @@
       csvName: 'Họ tên',
       csvCode: 'Mã',
       csvTotal: 'Tổng (giờ)',
+      deptExtraCardTitle: 'Thêm bộ phận (menu dropdown)',
+      labelDeptJa: 'Tên bộ phận (tiếng Nhật)',
+      labelDeptVi: 'Tên bộ phận (Tiếng Việt)',
+      deptExtraHint:
+        'Các bộ phận thêm vào sẽ hiện trong menu của mọi người. Có thể xóa trong danh sách (những dòng đang chọn bộ phận đó sẽ về «Chưa chọn»).',
+      alertDeptAdded: 'Đã thêm bộ phận.',
+      alertDeptBothRequired: 'Vui lòng nhập cả tên tiếng Nhật và tiếng Việt.',
+      confirmDelDept:
+        'Xóa bộ phận này? Các dòng đang chọn bộ phận đó sẽ trở về «Chưa chọn».',
     },
   };
 
@@ -660,9 +694,13 @@
   /** DB に保存する部署キー（言語に依存しない） */
   const DEPT_KEYS = ['', 'mfg', 'qc', 'logistics', 'other'];
 
-  function normalizeDeptStored(raw) {
+  function normalizeDeptStored(raw, extraDeps) {
+    const extras = Array.isArray(extraDeps) ? extraDeps : [];
     if (raw == null || raw === '') return '';
     if (DEPT_KEYS.includes(raw)) return raw;
+    if (String(raw).startsWith('ext_')) {
+      return extras.some((e) => e.key === raw) ? raw : '';
+    }
     const jp = { 製造: 'mfg', 検査: 'qc', 物流: 'logistics', その他: 'other', '（未設定）': '' };
     const vi = {
       'Sản xuất': 'mfg',
@@ -673,10 +711,15 @@
     };
     if (jp[raw] !== undefined) return jp[raw];
     if (vi[raw] !== undefined) return vi[raw];
+    for (let i = 0; i < extras.length; i++) {
+      const e = extras[i];
+      if (raw === e.ja || raw === e.vi) return e.key;
+    }
     return '';
   }
 
-  function deptSelectHtml(selectedCanon) {
+  function deptSelectHtml(selectedCanon, extraDeps) {
+    const extras = Array.isArray(extraDeps) ? extraDeps : [];
     const labs = [
       tr('deptUnset'),
       tr('deptProd'),
@@ -684,10 +727,17 @@
       tr('deptLogistics'),
       tr('deptOther'),
     ];
-    return DEPT_KEYS.map((k, i) => {
+    const parts = [];
+    DEPT_KEYS.forEach((k, i) => {
       const sel = selectedCanon === k ? 'selected' : '';
-      return `<option value="${escapeHtml(k)}" ${sel}>${escapeHtml(labs[i])}</option>`;
-    }).join('');
+      parts.push(`<option value="${escapeHtml(k)}" ${sel}>${escapeHtml(labs[i])}</option>`);
+    });
+    extras.forEach((e) => {
+      const label = lang === 'vi' ? e.vi : e.ja;
+      const sel = selectedCanon === e.key ? 'selected' : '';
+      parts.push(`<option value="${escapeHtml(e.key)}" ${sel}>${escapeHtml(label)}</option>`);
+    });
+    return parts.join('');
   }
 
   function applyLangButtons() {
@@ -759,6 +809,11 @@
     $('#modal-revision').textContent = tr('btnRevision');
     $('#modal-reject').textContent = tr('btnReject');
     $('#modal-close').textContent = tr('btnClose');
+    $('#card-title-dept-extra').textContent = tr('deptExtraCardTitle');
+    $('#label-dept-ja').textContent = tr('labelDeptJa');
+    $('#label-dept-vi').textContent = tr('labelDeptVi');
+    $('#dept-add-btn').textContent = tr('btnAdd');
+    $('#hint-dept-extra').textContent = tr('deptExtraHint');
     syncLangControls();
   }
 
@@ -1195,6 +1250,7 @@
       box.innerHTML = `<div class="empty-state">${escapeHtml(tr('siteNotPublished'))}</div>`;
       return;
     }
+    const extras = Array.isArray(state.extraDepartments) ? state.extraDepartments : [];
     let html = '';
     state.workers
       .slice()
@@ -1202,8 +1258,8 @@
       .forEach((w) => {
         const total = rowTotal(sch, w.id);
         if (total <= 0) return;
-        const deptCanon = normalizeDeptStored(sch.deptByWorker?.[w.id] ?? '');
-        const sel = deptSelectHtml(deptCanon);
+        const deptCanon = normalizeDeptStored(sch.deptByWorker?.[w.id] ?? '', extras);
+        const sel = deptSelectHtml(deptCanon, extras);
         const hoursDesc = [];
         for (let hi = 0; hi < N_HOURS; hi++) {
           const v = getCell(sch, w.id, hi);
@@ -1217,6 +1273,33 @@
         </div>`;
       });
     box.innerHTML = html || `<div class="empty-state">${escapeHtml(tr('siteNoWorkers'))}</div>`;
+  }
+
+  function renderDeptManagePanel() {
+    const extras = Array.isArray(state.extraDepartments) ? state.extraDepartments : [];
+    const listEl = $('#dept-extra-list');
+    if (!listEl) return;
+    listEl.innerHTML = extras
+      .map((e) => {
+        const main = lang === 'vi' ? e.vi : e.ja;
+        const sub = lang === 'vi' ? e.ja : e.vi;
+        return `<span class="master-tag">${escapeHtml(main)} <small style="opacity:.75;font-weight:400;">(${escapeHtml(
+          sub
+        )})</small>
+          <button type="button" class="btn-del-extra" data-key="${escapeHtml(e.key)}" style="border:none;background:none;cursor:pointer;color:#9ca3af;">✕</button></span>`;
+      })
+      .join('');
+    listEl.querySelectorAll('.btn-del-extra').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        if (!confirm(tr('confirmDelDept'))) return;
+        try {
+          await api('DELETE', `/api/extra-departments/${encodeURIComponent(btn.dataset.key)}`);
+          await refreshState();
+        } catch (err) {
+          alert(err.message || String(err));
+        }
+      });
+    });
   }
 
   $('#site-save').onclick = async () => {
@@ -1259,6 +1342,7 @@
     renderMaster();
     renderHr();
     renderScheduleTable();
+    renderDeptManagePanel();
     renderSite();
   }
 
@@ -1296,6 +1380,24 @@
       $('#mw-code').value = '';
       $('#mw-name').value = '';
       await refreshState();
+    } catch (e) {
+      alert(e.message || String(e));
+    }
+  };
+
+  $('#dept-add-btn').onclick = async () => {
+    const ja = $('#dept-add-ja').value.trim();
+    const vi = $('#dept-add-vi').value.trim();
+    if (!ja || !vi) {
+      alert(tr('alertDeptBothRequired'));
+      return;
+    }
+    try {
+      await api('POST', '/api/extra-departments', { ja, vi });
+      $('#dept-add-ja').value = '';
+      $('#dept-add-vi').value = '';
+      await refreshState();
+      alert(tr('alertDeptAdded'));
     } catch (e) {
       alert(e.message || String(e));
     }
