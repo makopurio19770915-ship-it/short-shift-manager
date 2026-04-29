@@ -21,7 +21,7 @@
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
       background: var(--gray-100);
       color: var(--gray-900);
       min-height: 100vh;
@@ -31,14 +31,38 @@
       color: white;
       padding: 14px 20px;
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       justify-content: space-between;
       flex-wrap: wrap;
-      gap: 8px;
+      gap: 12px;
       box-shadow: var(--shadow);
     }
     .app-header h1 { font-size: 17px; font-weight: 600; }
     .app-header .sub { font-size: 12px; opacity: 0.9; max-width: 520px; line-height: 1.4; }
+
+    .lang-switch {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .lang-btn {
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: 1px solid rgba(255,255,255,0.45);
+      background: rgba(255,255,255,0.12);
+      color: white;
+      font-size: 13px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .lang-btn:hover { background: rgba(255,255,255,0.22); }
+    .lang-btn.active {
+      background: white;
+      color: var(--primary-dark);
+      border-color: white;
+      font-weight: 600;
+    }
 
     .tabs {
       background: white;
@@ -259,70 +283,106 @@
     }
 
     .hint { font-size: 12px; color: var(--gray-500); margin-top: 8px; line-height: 1.5; }
+
+    .lang-bar {
+      background: white;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--gray-200);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    }
+    .lang-bar label {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--gray-700);
+    }
+    .lang-bar select {
+      max-width: 280px;
+      width: auto;
+      min-width: 200px;
+      font-size: 15px;
+      padding: 8px 12px;
+      border: 2px solid var(--primary);
+      border-radius: var(--radius);
+    }
   </style>
 </head>
 <body>
   <header class="app-header">
     <div>
-      <h1>短期アルバイト · シフト管理</h1>
-      <p class="sub">勤務希望 → 管理者確認 → 日別シフト（時間軸）→ 現場で所属決定（Excel／LINE運用の置き換え用）</p>
+      <h1 id="ui-page-title">短期アルバイト · シフト管理</h1>
+      <p class="sub" id="ui-page-sub">勤務希望 → 管理者確認 → 日別シフト（時間軸）→ 現場で所属決定（Excel／LINE運用の置き換え用）</p>
+    </div>
+    <div class="lang-switch" role="group" aria-label="Language">
+      <button type="button" class="lang-btn" id="lang-ja" data-lang="ja">日本語</button>
+      <button type="button" class="lang-btn" id="lang-vi" data-lang="vi">Tiếng Việt</button>
     </div>
   </header>
 
+  <div class="lang-bar">
+    <label for="lang-select" id="lang-bar-label">言語 / Ngôn ngữ</label>
+    <select id="lang-select" aria-label="Language">
+      <option value="ja">日本語 (Japanese)</option>
+      <option value="vi">Tiếng Việt (Vietnamese)</option>
+    </select>
+  </div>
+
   <nav class="tabs">
-    <button type="button" class="tab-btn active" data-tab="request">勤務希望を送る</button>
-    <button type="button" class="tab-btn" data-tab="hr">管理者・依頼一覧</button>
-    <button type="button" class="tab-btn" data-tab="master">ワーカーマスタ</button>
-    <button type="button" class="tab-btn" data-tab="schedule">シフト作成</button>
-    <button type="button" class="tab-btn" data-tab="site">現場確認</button>
+    <button type="button" class="tab-btn active" data-tab="request" id="tab-request">勤務希望を送る</button>
+    <button type="button" class="tab-btn" data-tab="hr" id="tab-hr">管理者・依頼一覧</button>
+    <button type="button" class="tab-btn" data-tab="master" id="tab-master">ワーカーマスタ</button>
+    <button type="button" class="tab-btn" data-tab="schedule" id="tab-schedule">シフト作成</button>
+    <button type="button" class="tab-btn" data-tab="site" id="tab-site">現場確認</button>
   </nav>
 
   <main class="main">
-    <!-- Request -->
     <section id="panel-request" class="tab-panel active">
       <div class="card">
-        <div class="card-title">勤務希望フォーム（ワーカー本人または管理者が代理入力）</div>
+        <div class="card-title" id="card-title-request">勤務希望フォーム（ワーカー本人または管理者が代理入力）</div>
         <div class="form-group full" style="margin-bottom:12px;">
-          <label for="req-worker">ワーカー<span style="color:var(--danger)">*</span></label>
+          <label for="req-worker"><span id="label-worker">ワーカー</span><span style="color:var(--danger)">*</span></label>
           <select id="req-worker"></select>
         </div>
-        <div class="card-title" style="border:none;padding:0;margin-bottom:8px;font-size:13px;">勤務したい日時（複数日は行を追加）</div>
+        <div class="card-title" style="border:none;padding:0;margin-bottom:8px;font-size:13px;" id="card-slots-title">勤務したい日時（複数日は行を追加）</div>
         <div id="req-slot-rows"></div>
         <button type="button" class="btn btn-ghost btn-sm" id="req-add-slot">＋ 日時を追加</button>
         <div class="form-group full" style="margin-top:14px;">
-          <label for="req-note">フリーテキスト（LINEのようにそのままメモ）</label>
-          <textarea id="req-note" placeholder="例：22日〜25日 7時〜21時 でお願いします"></textarea>
+          <label for="req-note" id="label-note">フリーテキスト（LINEのようにそのままメモ）</label>
+          <textarea id="req-note"></textarea>
         </div>
         <button type="button" class="btn btn-primary" id="req-submit">希望を送信</button>
         <p class="hint" id="storage-hint">読み込み中…</p>
       </div>
     </section>
 
-    <!-- HR -->
     <section id="panel-hr" class="tab-panel">
       <div class="card">
-        <div class="card-title">依頼一覧</div>
+        <div class="card-title" id="card-title-hr">依頼一覧</div>
         <div class="toolbar">
           <label style="display:flex;align-items:center;gap:8px;margin:0;">
-            <input type="checkbox" id="hr-filter-pending" checked /> 未処理のみ
+            <input type="checkbox" id="hr-filter-pending" checked />
+            <span id="label-hr-filter">未処理のみ</span>
           </label>
         </div>
         <div id="hr-list"></div>
       </div>
     </section>
 
-    <!-- Master -->
     <section id="panel-master" class="tab-panel">
       <div class="card">
-        <div class="card-title">ワーカーマスタ（社員コード・氏名）</div>
+        <div class="card-title" id="card-title-master">ワーカーマスタ（社員コード・氏名）</div>
         <div class="form-grid">
           <div class="form-group">
-            <label for="mw-code">コード</label>
-            <input id="mw-code" placeholder="9885" />
+            <label for="mw-code" id="label-mw-code">コード</label>
+            <input id="mw-code" />
           </div>
           <div class="form-group">
-            <label for="mw-name">氏名</label>
-            <input id="mw-name" placeholder="山田 太郎" />
+            <label for="mw-name" id="label-mw-name">氏名</label>
+            <input id="mw-name" />
           </div>
         </div>
         <button type="button" class="btn btn-primary" style="margin-top:12px;" id="mw-add">追加</button>
@@ -330,13 +390,12 @@
       </div>
     </section>
 
-    <!-- Schedule -->
     <section id="panel-schedule" class="tab-panel">
       <div class="card">
-        <div class="card-title">日別シフト（Excel の時間マトリクス相当）</div>
+        <div class="card-title" id="card-title-schedule">日別シフト（Excel の時間マトリクス相当）</div>
         <div class="toolbar">
           <label style="margin:0;display:flex;align-items:center;gap:8px;">
-            対象日
+            <span id="label-sch-date">対象日</span>
             <input type="date" id="sch-date" />
           </label>
           <button type="button" class="btn btn-ghost btn-sm" id="sch-copy-approved">承認済み希望から自動入力</button>
@@ -345,7 +404,7 @@
           <button type="button" class="btn btn-ghost btn-sm" id="sch-publish">現場に公開する</button>
           <button type="button" class="btn btn-ghost btn-sm" id="sch-export-csv">CSV出力</button>
         </div>
-        <p class="hint">セルをクリックして切り替え：空 → 1時間 → 0.5時間 → 空。公開すると「現場確認」タブに表示されます。</p>
+        <p class="hint" id="hint-schedule">セルをクリックして切り替え：空 → 1時間 → 0.5時間 → 空。公開すると「現場確認」タブに表示されます。</p>
         <div id="sch-published-banner" class="hint" style="color:#047857;font-weight:600;"></div>
         <div class="schedule-wrap">
           <table class="shift-table" id="sch-table"></table>
@@ -353,35 +412,33 @@
       </div>
     </section>
 
-    <!-- Site -->
     <section id="panel-site" class="tab-panel">
       <div class="card">
-        <div class="card-title">現場（公開済みシフトの確認・所属のメモ）</div>
+        <div class="card-title" id="card-title-site">現場（公開済みシフトの確認・所属のメモ）</div>
         <div class="toolbar">
           <label style="margin:0;display:flex;align-items:center;gap:8px;">
-            対象日
+            <span id="label-site-date">対象日</span>
             <input type="date" id="site-date" />
           </label>
           <button type="button" class="btn btn-primary btn-sm" id="site-save">所属メモを保存</button>
         </div>
-        <p class="hint">シフト作成タブで「現場に公開」した日だけ、ここに一覧されます。部署プルダウンは現場担当がその人をどこで使うかのメモ用です。</p>
+        <p class="hint" id="hint-site">シフト作成タブで「現場に公開」した日だけ、ここに一覧されます。部署プルダウンは現場担当がその人をどこで使うかのメモ用です。</p>
         <div id="site-content"></div>
       </div>
     </section>
   </main>
 
-  <!-- Modal review -->
   <div class="modal-overlay" id="modal-review">
     <div class="modal-box">
       <h3 id="modal-title">依頼の処理</h3>
       <div id="modal-body" style="font-size:14px;margin-bottom:12px;"></div>
       <div id="modal-adjust-wrap" style="display:none;">
-        <p style="font-size:13px;margin-bottom:8px;">修正後の日時（承認時にこれがシフト自動入力に使われます）</p>
+        <p style="font-size:13px;margin-bottom:8px;" id="modal-adjust-desc">修正後の日時（承認時にこれがシフト自動入力に使われます）</p>
         <div id="modal-adjust-rows"></div>
         <button type="button" class="btn btn-ghost btn-sm" id="modal-add-adjust">＋ 行を追加</button>
       </div>
       <div class="form-group full" style="margin-top:12px;">
-        <label for="modal-reviewer-note">管理者メモ（任意）</label>
+        <label for="modal-reviewer-note" id="label-modal-note">管理者メモ（任意）</label>
         <textarea id="modal-reviewer-note"></textarea>
       </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;">
@@ -395,6 +452,316 @@
 
   <script>
 (function () {
+  const STRINGS = {
+    ja: {
+      pageTitle: '短期アルバイト · シフト管理',
+      pageSub:
+        '勤務希望 → 管理者確認 → 日別シフト（時間軸）→ 現場で所属決定（Excel／LINE運用の置き換え用）',
+      tab_request: '勤務希望を送る',
+      tab_hr: '管理者・依頼一覧',
+      tab_master: 'ワーカーマスタ',
+      tab_schedule: 'シフト作成',
+      tab_site: '現場確認',
+      card_request: '勤務希望フォーム（ワーカー本人または管理者が代理入力）',
+      workerLabel: 'ワーカー',
+      slotSection: '勤務したい日時（複数日は行を追加）',
+      addSlot: '＋ 日時を追加',
+      noteLabel: 'フリーテキスト（LINEのようにそのままメモ）',
+      notePlaceholder: '例：22日〜25日 7時〜21時 でお願いします',
+      submitReq: '希望を送信',
+      storageLoading: '読み込み中…',
+      storageMongo:
+        'データはクラウドのデータベース（MongoDB）に保存されます。あなたのPCの電源や開閉に依存せず、インターネット経由で全員が同じデータを見られます。',
+      storageMongoSharePrefix: 'このページのURLを関係者に共有してください：',
+      storageLocal:
+        '開発モード：データはこのサーバー内の data/db.json に保存されています。社外から常時利用するには Render などに載せ、環境変数 MONGODB_URI（MongoDB Atlas）を設定してください。',
+      storageFallback: 'サーバーに保存されます。',
+      card_hr: '依頼一覧',
+      hrPendingOnly: '未処理のみ',
+      card_master: 'ワーカーマスタ（社員コード・氏名）',
+      labelCode: 'コード',
+      labelName: '氏名',
+      phCode: '9885',
+      phName: '山田 太郎',
+      btnAdd: '追加',
+      card_schedule: '日別シフト（Excel の時間マトリクス相当）',
+      targetDate: '対象日',
+      btnCopyApproved: '承認済み希望から自動入力',
+      btnClearDay: 'この日のセルをクリア',
+      btnSaveShift: 'シフトを保存',
+      btnPublish: '現場に公開する',
+      btnCsv: 'CSV出力',
+      hintSchedule:
+        'セルをクリックして切り替え：空 → 1時間 → 0.5時間 → 空。公開すると「現場確認」タブに表示されます。',
+      bannerPublished: 'この日は現場公開済みです。',
+      card_site: '現場（公開済みシフトの確認・所属のメモ）',
+      btnSiteSave: '所属メモを保存',
+      hintSite:
+        'シフト作成タブで「現場に公開」した日だけ、ここに一覧されます。部署プルダウンは現場担当がその人をどこで使うかのメモ用です。',
+      modalTitle: '依頼の処理',
+      modalAdjustDesc: '修正後の日時（承認時にこれがシフト自動入力に使われます）',
+      modalAddRow: '＋ 行を追加',
+      labelAdminNote: '管理者メモ（任意）',
+      btnApproveFull: '承認（調整後スロットを保存）',
+      btnRevision: '修正依頼として記録',
+      btnReject: '却下',
+      btnClose: '閉じる',
+      selectPlaceholder: '選択してください',
+      lblDate: '日付',
+      lblStart: '開始',
+      lblEnd: '終了',
+      btnRemove: '削除',
+      badgePending: '申請中',
+      badgeApproved: '承認済',
+      badgeRejected: '却下',
+      badgeRevision: '修正依頼',
+      noSlots: '（スロットなし）',
+      memoPrefix: 'メモ:',
+      hrApprove: '承認／調整',
+      hrRevision: '修正依頼',
+      hrReject: '却下',
+      adminNotePrefix: '管理者メモ:',
+      hrEmpty: '該当する依頼はありません。',
+      tblNameCode: '氏名 / コード',
+      tblTotal: '計(H)',
+      cellTitle: 'クリックで変更',
+      siteNotPublished:
+        'この日はまだ公開されていません（シフト作成タブで保存・公開してください）。',
+      siteNoWorkers: 'この日にシフトが入っているワーカーがいません。',
+      totalLabel: '合計',
+      unitHours: 'H',
+      alertPickDate: '対象日を選んでください。',
+      confirmClear: 'この日のシフトセルをすべて消しますか？',
+      alertSaved: '保存しました。',
+      alertPublished: '現場公開しました。「現場確認」タブで見られます。',
+      alertNoData: 'データがありません。',
+      alertSent: '送信しました。',
+      confirmDelWorker: 'このワーカーを削除しますか？関連する依頼・セルも消えます。',
+      deptUnset: '（未設定）',
+      deptProd: '製造',
+      deptQC: '検査',
+      deptLogistics: '物流',
+      deptOther: 'その他',
+      csvName: '氏名',
+      csvCode: 'コード',
+      csvTotal: '合計(H)',
+    },
+    vi: {
+      pageTitle: 'Ca ngắn hạn · Quản lý ca làm',
+      pageSub:
+        'Đăng ký giờ làm → Quản trị duyệt → Ca theo ngày (khung giờ) → Hiện trường phân bộ (thay Excel/LINE)',
+      tab_request: 'Gửi mong muốn ca làm',
+      tab_hr: 'Quản trị · Danh sách đơn',
+      tab_master: 'Danh sách nhân viên',
+      tab_schedule: 'Tạo ca (lịch)',
+      tab_site: 'Hiện trường',
+      card_request: 'Đơn mong muốn ca làm (nhân viên hoặc quản trị nhập thay)',
+      workerLabel: 'Nhân viên',
+      slotSection: 'Ngày giờ muốn làm (thêm dòng nếu nhiều ngày)',
+      addSlot: '＋ Thêm khung giờ',
+      noteLabel: 'Ghi chú tự do (như tin nhắn LINE)',
+      notePlaceholder: 'Ví dụ: Ngày 22–25, từ 7h–21h',
+      submitReq: 'Gửi mong muốn',
+      storageLoading: 'Đang tải…',
+      storageMongo:
+        'Dữ liệu được lưu trên MongoDB trên đám mây. Không phụ thuộc máy tính của bạn bật/tắt; mọi người truy cập Internet đều thấy cùng dữ liệu.',
+      storageMongoSharePrefix: 'Chia sẻ URL trang này cho các bên liên quan:',
+      storageLocal:
+        'Chế độ dev: dữ liệu lưu trong data/db.json trên máy chủ. Để dùng ngoài công ty hãy deploy (Render) và đặt biến môi trường MONGODB_URI.',
+      storageFallback: 'Dữ liệu được lưu trên máy chủ.',
+      card_hr: 'Danh sách đơn',
+      hrPendingOnly: 'Chỉ chưa xử lý',
+      card_master: 'Danh sách nhân viên (mã · họ tên)',
+      labelCode: 'Mã',
+      labelName: 'Họ tên',
+      phCode: '9885',
+      phName: 'Nguyễn Văn A',
+      btnAdd: 'Thêm',
+      card_schedule: 'Ca theo ngày (bảng giờ như Excel)',
+      targetDate: 'Ngày',
+      btnCopyApproved: 'Điền từ đơn đã duyệt',
+      btnClearDay: 'Xóa ô của ngày này',
+      btnSaveShift: 'Lưu ca',
+      btnPublish: 'Công khai cho hiện trường',
+      btnCsv: 'Xuất CSV',
+      hintSchedule:
+        'Nhấp ô để chuyển: trống → 1 giờ → 0.5 giờ → trống. Khi công khai sẽ hiện ở tab Hiện trường.',
+      bannerPublished: 'Ngày này đã công khai cho hiện trường.',
+      card_site: 'Hiện trường (xem ca đã công khai · ghi chú bộ phận)',
+      btnSiteSave: 'Lưu ghi chú bộ phận',
+      hintSite:
+        'Chỉ các ngày đã « Công khai cho hiện trường » trong tab Tạo ca mới hiện ở đây. Menu bộ phận để hiện trưởng ghi nhớ phân công.',
+      modalTitle: 'Xử lý đơn',
+      modalAdjustDesc: 'Giờ sau chỉnh sửa (dùng khi duyệt để điền ca tự động)',
+      modalAddRow: '＋ Thêm dòng',
+      labelAdminNote: 'Ghi chú quản trị (tuỳ chọn)',
+      btnApproveFull: 'Duyệt (lưu khung giờ đã chỉnh)',
+      btnRevision: 'Yêu cầu chỉnh sửa',
+      btnReject: 'Từ chối',
+      btnClose: 'Đóng',
+      selectPlaceholder: 'Chọn…',
+      lblDate: 'Ngày',
+      lblStart: 'Bắt đầu',
+      lblEnd: 'Kết thúc',
+      btnRemove: 'Xóa',
+      badgePending: 'Chờ duyệt',
+      badgeApproved: 'Đã duyệt',
+      badgeRejected: 'Từ chối',
+      badgeRevision: 'Cần sửa',
+      noSlots: '(Không có khung giờ)',
+      memoPrefix: 'Ghi chú:',
+      hrApprove: 'Duyệt / chỉnh',
+      hrRevision: 'Yêu cầu sửa',
+      hrReject: 'Từ chối',
+      adminNotePrefix: 'Ghi chú QL:',
+      hrEmpty: 'Không có đơn phù hợp.',
+      tblNameCode: 'Họ tên / Mã',
+      tblTotal: 'Tổng (giờ)',
+      cellTitle: 'Nhấp để đổi',
+      siteNotPublished:
+        'Ngày này chưa công khai (hãy Lưu và Công khai trong tab Tạo ca).',
+      siteNoWorkers: 'Không có nhân viên có ca trong ngày này.',
+      totalLabel: 'Tổng',
+      unitHours: 'h',
+      alertPickDate: 'Hãy chọn ngày.',
+      confirmClear: 'Xóa hết ô ca của ngày này?',
+      alertSaved: 'Đã lưu.',
+      alertPublished: 'Đã công khai. Xem tại tab Hiện trường.',
+      alertNoData: 'Không có dữ liệu.',
+      alertSent: 'Đã gửi.',
+      confirmDelWorker: 'Xóa nhân viên này? Đơn và ô ca liên quan cũng bị xóa.',
+      deptUnset: '(Chưa chọn)',
+      deptProd: 'Sản xuất',
+      deptQC: 'Kiểm tra',
+      deptLogistics: 'Logistics',
+      deptOther: 'Khác',
+      csvName: 'Họ tên',
+      csvCode: 'Mã',
+      csvTotal: 'Tổng (giờ)',
+    },
+  };
+
+  const LANG_KEY = 'short-shift-lang';
+
+  function detectLang() {
+    const saved = localStorage.getItem(LANG_KEY);
+    if (saved === 'ja' || saved === 'vi') return saved;
+    return navigator.language && navigator.language.toLowerCase().startsWith('vi') ? 'vi' : 'ja';
+  }
+
+  let lang = detectLang();
+
+  function tr(k) {
+    const s = STRINGS[lang][k];
+    if (s !== undefined) return s;
+    return STRINGS.ja[k] !== undefined ? STRINGS.ja[k] : k;
+  }
+
+  /** DB に保存する部署キー（言語に依存しない） */
+  const DEPT_KEYS = ['', 'mfg', 'qc', 'logistics', 'other'];
+
+  function normalizeDeptStored(raw) {
+    if (raw == null || raw === '') return '';
+    if (DEPT_KEYS.includes(raw)) return raw;
+    const jp = { 製造: 'mfg', 検査: 'qc', 物流: 'logistics', その他: 'other', '（未設定）': '' };
+    const vi = {
+      'Sản xuất': 'mfg',
+      'Kiểm tra': 'qc',
+      Logistics: 'logistics',
+      'Khác': 'other',
+      '(Chưa chọn)': '',
+    };
+    if (jp[raw] !== undefined) return jp[raw];
+    if (vi[raw] !== undefined) return vi[raw];
+    return '';
+  }
+
+  function deptSelectHtml(selectedCanon) {
+    const labs = [
+      tr('deptUnset'),
+      tr('deptProd'),
+      tr('deptQC'),
+      tr('deptLogistics'),
+      tr('deptOther'),
+    ];
+    return DEPT_KEYS.map((k, i) => {
+      const sel = selectedCanon === k ? 'selected' : '';
+      return `<option value="${escapeHtml(k)}" ${sel}>${escapeHtml(labs[i])}</option>`;
+    }).join('');
+  }
+
+  function applyLangButtons() {
+    document.querySelectorAll('.lang-btn').forEach((b) => {
+      b.classList.toggle('active', b.dataset.lang === lang);
+    });
+  }
+
+  function syncLangControls() {
+    const sel = document.getElementById('lang-select');
+    if (sel) sel.value = lang;
+    applyLangButtons();
+  }
+
+  function setLang(nextLang) {
+    if (nextLang !== 'ja' && nextLang !== 'vi') return;
+    lang = nextLang;
+    localStorage.setItem(LANG_KEY, lang);
+    const hint = $('#storage-hint');
+    if (hint) hint.textContent = tr('storageLoading');
+    renderAll();
+    refreshStorageHintFromMeta();
+    rebuildSlotRowsLocale();
+    syncLangControls();
+  }
+
+  function applyStaticUi() {
+    document.documentElement.lang = lang === 'vi' ? 'vi' : 'ja';
+    document.title = tr('pageTitle');
+    $('#ui-page-title').textContent = tr('pageTitle');
+    $('#ui-page-sub').textContent = tr('pageSub');
+    $('#tab-request').textContent = tr('tab_request');
+    $('#tab-hr').textContent = tr('tab_hr');
+    $('#tab-master').textContent = tr('tab_master');
+    $('#tab-schedule').textContent = tr('tab_schedule');
+    $('#tab-site').textContent = tr('tab_site');
+    $('#card-title-request').textContent = tr('card_request');
+    $('#label-worker').textContent = tr('workerLabel');
+    $('#card-slots-title').textContent = tr('slotSection');
+    $('#req-add-slot').textContent = tr('addSlot');
+    $('#label-note').textContent = tr('noteLabel');
+    $('#req-note').placeholder = tr('notePlaceholder');
+    $('#req-submit').textContent = tr('submitReq');
+    $('#card-title-hr').textContent = tr('card_hr');
+    $('#label-hr-filter').textContent = tr('hrPendingOnly');
+    $('#card-title-master').textContent = tr('card_master');
+    $('#label-mw-code').textContent = tr('labelCode');
+    $('#label-mw-name').textContent = tr('labelName');
+    $('#mw-code').placeholder = tr('phCode');
+    $('#mw-name').placeholder = tr('phName');
+    $('#mw-add').textContent = tr('btnAdd');
+    $('#card-title-schedule').textContent = tr('card_schedule');
+    $('#label-sch-date').textContent = tr('targetDate');
+    $('#sch-copy-approved').textContent = tr('btnCopyApproved');
+    $('#sch-clear-day').textContent = tr('btnClearDay');
+    $('#sch-save').textContent = tr('btnSaveShift');
+    $('#sch-publish').textContent = tr('btnPublish');
+    $('#sch-export-csv').textContent = tr('btnCsv');
+    $('#hint-schedule').textContent = tr('hintSchedule');
+    $('#card-title-site').textContent = tr('card_site');
+    $('#label-site-date').textContent = tr('targetDate');
+    $('#site-save').textContent = tr('btnSiteSave');
+    $('#hint-site').textContent = tr('hintSite');
+    $('#modal-title').textContent = tr('modalTitle');
+    $('#modal-adjust-desc').textContent = tr('modalAdjustDesc');
+    $('#modal-add-adjust').textContent = tr('modalAddRow');
+    $('#label-modal-note').textContent = tr('labelAdminNote');
+    $('#modal-approve').textContent = tr('btnApproveFull');
+    $('#modal-revision').textContent = tr('btnRevision');
+    $('#modal-reject').textContent = tr('btnReject');
+    $('#modal-close').textContent = tr('btnClose');
+    syncLangControls();
+  }
+
   const HOUR_LABELS = [];
   for (let h = 6; h <= 21; h++) {
     const pad = (n) => String(n).padStart(2, '0');
@@ -432,7 +799,7 @@
     if (placeholderDisabled) {
       const o = document.createElement('option');
       o.value = '';
-      o.textContent = '選択してください';
+      o.textContent = tr('selectPlaceholder');
       selectEl.appendChild(o);
     }
     state.workers
@@ -452,18 +819,18 @@
     row.className = 'slot-row';
     row.innerHTML = `
       <div class="form-group" style="margin:0;">
-        <label>日付</label>
+        <label>${escapeHtml(tr('lblDate'))}</label>
         <input type="date" class="sl-date" value="${initial?.date || ''}" />
       </div>
       <div class="form-group" style="margin:0;">
-        <label>開始</label>
+        <label>${escapeHtml(tr('lblStart'))}</label>
         <input type="time" class="sl-start" value="${initial?.start || '09:00'}" />
       </div>
       <div class="form-group" style="margin:0;">
-        <label>終了</label>
+        <label>${escapeHtml(tr('lblEnd'))}</label>
         <input type="time" class="sl-end" value="${initial?.end || '18:00'}" />
       </div>
-      <button type="button" class="btn btn-ghost btn-sm sl-remove">削除</button>
+      <button type="button" class="btn btn-ghost btn-sm sl-remove">${escapeHtml(tr('btnRemove'))}</button>
     `;
     row.querySelector('.sl-remove').onclick = () => row.remove();
     container.appendChild(row);
@@ -486,7 +853,6 @@
     return (h || 0) * 60 + (m || 0);
   }
 
-  /** Minutes from midnight for schedule grid (hour column index i covers [base+i*60, base+(i+1)*60)) */
   function hourColumnRangeMinutes(index) {
     const base = 6 * 60;
     return [base + index * 60, base + (index + 1) * 60];
@@ -498,13 +864,26 @@
     return Math.max(0, hi - lo);
   }
 
-  function badge(req) {
+  function badgeHtml(req) {
     const st = req.status;
-    if (st === 'pending') return '<span class="badge badge-pending">申請中</span>';
-    if (st === 'approved') return '<span class="badge badge-approved">承認済</span>';
-    if (st === 'rejected') return '<span class="badge badge-rejected">却下</span>';
-    if (st === 'needs_revision') return '<span class="badge badge-revision">修正依頼</span>';
-    return st;
+    let cls = '';
+    let label = '';
+    if (st === 'pending') {
+      cls = 'badge-pending';
+      label = tr('badgePending');
+    } else if (st === 'approved') {
+      cls = 'badge-approved';
+      label = tr('badgeApproved');
+    } else if (st === 'rejected') {
+      cls = 'badge-rejected';
+      label = tr('badgeRejected');
+    } else if (st === 'needs_revision') {
+      cls = 'badge-revision';
+      label = tr('badgeRevision');
+    } else {
+      return escapeHtml(st);
+    }
+    return `<span class="badge ${cls}">${escapeHtml(label)}</span>`;
   }
 
   function renderHr() {
@@ -512,7 +891,7 @@
     const pendingOnly = $('#hr-filter-pending').checked;
     const reqs = state.requests.filter((r) => !pendingOnly || r.status === 'pending');
     if (!reqs.length) {
-      list.innerHTML = '<div class="empty-state">該当する依頼はありません。</div>';
+      list.innerHTML = `<div class="empty-state">${escapeHtml(tr('hrEmpty'))}</div>`;
       return;
     }
     list.innerHTML = reqs
@@ -522,21 +901,21 @@
         const slotsTxt =
           req.slots && req.slots.length
             ? req.slots.map((s) => `${s.date} ${s.start}〜${s.end}`).join('\n')
-            : '（スロットなし）';
-        const raw = req.rawNote ? `\nメモ: ${req.rawNote}` : '';
+            : tr('noSlots');
+        const raw = req.rawNote ? `\n${tr('memoPrefix')} ${req.rawNote}` : '';
         const actions =
           req.status === 'pending'
             ? `<div class="req-actions">
-                <button type="button" class="btn btn-primary btn-sm hr-open" data-id="${req.id}" data-act="approve">承認／調整</button>
-                <button type="button" class="btn btn-ghost btn-sm hr-open" data-id="${req.id}" data-act="revision">修正依頼</button>
-                <button type="button" class="btn btn-danger btn-sm hr-open" data-id="${req.id}" data-act="reject">却下</button>
+                <button type="button" class="btn btn-primary btn-sm hr-open" data-id="${req.id}" data-act="approve">${escapeHtml(tr('hrApprove'))}</button>
+                <button type="button" class="btn btn-ghost btn-sm hr-open" data-id="${req.id}" data-act="revision">${escapeHtml(tr('hrRevision'))}</button>
+                <button type="button" class="btn btn-danger btn-sm hr-open" data-id="${req.id}" data-act="reject">${escapeHtml(tr('hrReject'))}</button>
               </div>`
             : '';
         return `
           <div class="request-item">
-            <div class="meta">#${req.id} · ${name} · ${badge(req)} · ${req.createdAt ? req.createdAt.slice(0, 16).replace('T', ' ') : ''}</div>
+            <div class="meta">#${req.id} · ${escapeHtml(name)} · ${badgeHtml(req)} · ${req.createdAt ? req.createdAt.slice(0, 16).replace('T', ' ') : ''}</div>
             <div class="body">${escapeHtml(slotsTxt)}${escapeHtml(raw)}</div>
-            ${req.reviewerNote ? `<div class="hint">管理者メモ: ${escapeHtml(req.reviewerNote)}</div>` : ''}
+            ${req.reviewerNote ? `<div class="hint">${escapeHtml(tr('adminNotePrefix'))} ${escapeHtml(req.reviewerNote)}</div>` : ''}
             ${actions}
           </div>`;
       })
@@ -560,10 +939,13 @@
     modalRequestId = reqId;
     modalMode = act === 'reject' ? 'reject' : act === 'revision' ? 'revision' : 'approve';
     const w = workerById(req.workerId);
-    $('#modal-body').innerHTML = `<strong>${w ? `${w.code} ${w.name}` : ''}</strong><pre style="white-space:pre-wrap;margin-top:8px;font-size:13px;">${escapeHtml(
-      (req.slots || []).map((s) => `${s.date} ${s.start}-${s.end}`).join('\n') || 'スロットなし'
-    )}</pre>${req.rawNote ? `<p style="margin-top:8px;">メモ: ${escapeHtml(req.rawNote)}</p>` : ''}`;
+    const slotsLines =
+      (req.slots || []).length > 0
+        ? (req.slots || []).map((s) => `${s.date} ${s.start}-${s.end}`).join('\n')
+        : tr('noSlots');
+    $('#modal-body').innerHTML = `<strong>${w ? `${escapeHtml(w.code)} ${escapeHtml(w.name)}` : ''}</strong><pre style="white-space:pre-wrap;margin-top:8px;font-size:13px;">${escapeHtml(slotsLines)}</pre>${req.rawNote ? `<p style="margin-top:8px;">${escapeHtml(tr('memoPrefix'))} ${escapeHtml(req.rawNote)}</p>` : ''}`;
     $('#modal-reviewer-note').value = req.reviewerNote || '';
+    applyStaticUi();
     const wrap = $('#modal-adjust-wrap');
     const rows = $('#modal-adjust-rows');
     rows.innerHTML = '';
@@ -584,10 +966,10 @@
     row.className = 'slot-row';
     row.style.marginBottom = '6px';
     row.innerHTML = `
-      <div class="form-group" style="margin:0;"><label>日付</label><input type="date" class="adj-date" value="${initial.date || ''}" /></div>
-      <div class="form-group" style="margin:0;"><label>開始</label><input type="time" class="adj-start" value="${initial.start || '09:00'}" /></div>
-      <div class="form-group" style="margin:0;"><label>終了</label><input type="time" class="adj-end" value="${initial.end || '18:00'}" /></div>
-      <button type="button" class="btn btn-ghost btn-sm adj-remove">削除</button>`;
+      <div class="form-group" style="margin:0;"><label>${escapeHtml(tr('lblDate'))}</label><input type="date" class="adj-date" value="${initial.date || ''}" /></div>
+      <div class="form-group" style="margin:0;"><label>${escapeHtml(tr('lblStart'))}</label><input type="time" class="adj-start" value="${initial.start || '09:00'}" /></div>
+      <div class="form-group" style="margin:0;"><label>${escapeHtml(tr('lblEnd'))}</label><input type="time" class="adj-end" value="${initial.end || '18:00'}" /></div>
+      <button type="button" class="btn btn-ghost btn-sm adj-remove">${escapeHtml(tr('btnRemove'))}</button>`;
     row.querySelector('.adj-remove').onclick = () => row.remove();
     container.appendChild(row);
   }
@@ -656,17 +1038,18 @@
   function renderScheduleTable() {
     const dateStr = $('#sch-date').value;
     const sch = state.schedules[dateStr] || { cells: {}, published: false };
-    $('#sch-published-banner').textContent = sch.published ? `この日は現場公開済みです。` : '';
+    $('#sch-published-banner').textContent = sch.published ? tr('bannerPublished') : '';
 
     const tb = $('#sch-table');
     const workers = state.workers.slice().sort((a, b) => a.code.localeCompare(b.code));
-    let thead = '<thead><tr><th class="name-col">氏名 / コード</th>';
+    let thead = `<thead><tr><th class="name-col">${escapeHtml(tr('tblNameCode'))}</th>`;
     HOUR_LABELS.forEach((lab) => {
-      thead += `<th title="${lab}">${lab.replace(':00-', '-').slice(0, 8)}</th>`;
+      thead += `<th title="${escapeHtml(lab)}">${escapeHtml(lab.replace(':00-', '-').slice(0, 8))}</th>`;
     });
-    thead += '<th class="total-col">計(H)</th></tr></thead>';
+    thead += `<th class="total-col">${escapeHtml(tr('tblTotal'))}</th></tr></thead>`;
 
     let body = '<tbody>';
+    const tip = escapeHtml(tr('cellTitle'));
     workers.forEach((w) => {
       body += `<tr><td class="name-col">${escapeHtml(w.name)}<br/><span style="font-size:11px;color:#6b7280">${escapeHtml(w.code)}</span></td>`;
       for (let hi = 0; hi < N_HOURS; hi++) {
@@ -680,7 +1063,7 @@
           cls += ' val-half';
           disp = '½';
         }
-        body += `<td class="${cls}" data-wid="${w.id}" data-hi="${hi}" title="クリックで変更">${disp}</td>`;
+        body += `<td class="${cls}" data-wid="${w.id}" data-hi="${hi}" title="${tip}">${disp}</td>`;
       }
       body += `<td class="total-col">${rowTotal(sch, w.id)}</td></tr>`;
     });
@@ -691,9 +1074,9 @@
       td.addEventListener('click', () => {
         const wid = parseInt(td.dataset.wid, 10);
         const hi = parseInt(td.dataset.hi, 10);
-        const dateStr = $('#sch-date').value;
-        if (!state.schedules[dateStr]) state.schedules[dateStr] = { cells: {}, published: false, deptByWorker: {} };
-        const cells = state.schedules[dateStr].cells;
+        const ds = $('#sch-date').value;
+        if (!state.schedules[ds]) state.schedules[ds] = { cells: {}, published: false, deptByWorker: {} };
+        const cells = state.schedules[ds].cells;
         const k = cellKey(wid, hi);
         const cur = cells[k];
         let next = null;
@@ -723,7 +1106,7 @@
 
   $('#sch-copy-approved').onclick = async () => {
     const dateStr = $('#sch-date').value;
-    if (!dateStr) return alert('対象日を選んでください。');
+    if (!dateStr) return alert(tr('alertPickDate'));
     const cells = {};
     state.workers.forEach((w) => {
       const slots = approvedSlotsForWorker(w.id);
@@ -746,7 +1129,7 @@
   };
 
   $('#sch-clear-day').onclick = async () => {
-    if (!confirm('この日のシフトセルをすべて消しますか？')) return;
+    if (!confirm(tr('confirmClear'))) return;
     await saveScheduleExtras({ clearCells: true, published: false });
   };
 
@@ -758,21 +1141,21 @@
       published: sch?.published || false,
       deptByWorker: sch?.deptByWorker || {},
     });
-    alert('保存しました。');
+    alert(tr('alertSaved'));
   };
 
   $('#sch-publish').onclick = async () => {
-    const dateStr = $('#sch-date').value;
+    $('#sch-date').value;
     await saveScheduleExtras({ published: true });
-    alert('現場公開しました。「現場確認」タブで見られます。');
+    alert(tr('alertPublished'));
   };
 
   $('#sch-export-csv').onclick = () => {
     const dateStr = $('#sch-date').value;
     const sch = state.schedules[dateStr];
-    if (!sch) return alert('データがありません。');
+    if (!sch) return alert(tr('alertNoData'));
     const rows = [];
-    rows.push(['氏名', 'コード', ...HOUR_LABELS, '合計(H)']);
+    rows.push([tr('csvName'), tr('csvCode'), ...HOUR_LABELS, tr('csvTotal')]);
     state.workers
       .slice()
       .sort((a, b) => a.code.localeCompare(b.code))
@@ -809,11 +1192,9 @@
     const sch = state.schedules[dateStr];
     const box = $('#site-content');
     if (!sch || !sch.published) {
-      box.innerHTML =
-        '<div class="empty-state">この日はまだ公開されていません（シフト作成タブで保存・公開してください）。</div>';
+      box.innerHTML = `<div class="empty-state">${escapeHtml(tr('siteNotPublished'))}</div>`;
       return;
     }
-    const deptOptions = ['（未設定）', '製造', '検査', '物流', 'その他'];
     let html = '';
     state.workers
       .slice()
@@ -821,13 +1202,8 @@
       .forEach((w) => {
         const total = rowTotal(sch, w.id);
         if (total <= 0) return;
-        const dept = sch.deptByWorker?.[w.id] ?? '';
-        const sel = deptOptions
-          .map((d) => {
-            const val = d === '（未設定）' ? '' : d;
-            return `<option value="${escapeHtml(val)}" ${dept === val ? 'selected' : ''}>${escapeHtml(d)}</option>`;
-          })
-          .join('');
+        const deptCanon = normalizeDeptStored(sch.deptByWorker?.[w.id] ?? '');
+        const sel = deptSelectHtml(deptCanon);
         const hoursDesc = [];
         for (let hi = 0; hi < N_HOURS; hi++) {
           const v = getCell(sch, w.id, hi);
@@ -836,11 +1212,11 @@
         html += `<div class="site-row" data-wid="${w.id}">
           <div><strong>${escapeHtml(w.name)}</strong> <span style="color:#6b7280">${escapeHtml(w.code)}</span><br/>
           <span style="font-size:12px;color:#374151">${hoursDesc.join(' / ') || '—'}</span></div>
-          <div>合計 <strong>${total}</strong> H</div>
+          <div>${escapeHtml(tr('totalLabel'))} <strong>${total}</strong> ${escapeHtml(tr('unitHours'))}</div>
           <select class="site-dept">${sel}</select>
         </div>`;
       });
-    box.innerHTML = html || '<div class="empty-state">この日にシフトが入っているワーカーがいません。</div>';
+    box.innerHTML = html || `<div class="empty-state">${escapeHtml(tr('siteNoWorkers'))}</div>`;
   }
 
   $('#site-save').onclick = async () => {
@@ -854,7 +1230,7 @@
       deptByWorker[wid] = v || '';
     });
     await saveScheduleExtras({ deptByWorker });
-    alert('保存しました。');
+    alert(tr('alertSaved'));
   };
 
   function renderMaster() {
@@ -871,7 +1247,7 @@
       .join('');
     mw.querySelectorAll('.btn-mw-del').forEach((btn) => {
       btn.addEventListener('click', async () => {
-        if (!confirm('このワーカーを削除しますか？関連する依頼・セルも消えます。')) return;
+        if (!confirm(tr('confirmDelWorker'))) return;
         await api('DELETE', `/api/workers/${btn.dataset.id}`);
         await refreshState();
       });
@@ -879,6 +1255,7 @@
   }
 
   function renderAll() {
+    applyStaticUi();
     renderMaster();
     renderHr();
     renderScheduleTable();
@@ -905,7 +1282,7 @@
       await api('POST', '/api/requests', { workerId: wid, slots, rawNote });
       $('#req-note').value = '';
       await refreshState();
-      alert('送信しました。');
+      alert(tr('alertSent'));
     } catch (e) {
       alert(e.message || String(e));
     }
@@ -937,36 +1314,53 @@
     $('#site-date').value = iso;
   })();
 
-  addSlotRow($('#req-slot-rows'), {});
+  document.getElementById('lang-ja').addEventListener('click', () => setLang('ja'));
+  document.getElementById('lang-vi').addEventListener('click', () => setLang('vi'));
+  document.getElementById('lang-select').addEventListener('change', function () {
+    setLang(this.value);
+  });
 
-  fetch('/api/meta')
-    .then((r) => r.json())
-    .then((meta) => {
-      const el = $('#storage-hint');
-      if (!el) return;
-      if (meta.persistence === 'mongodb') {
-        el.textContent =
-          'データはクラウドのデータベース（MongoDB）に保存されます。あなたのPCの電源や開閉に依存せず、インターネット経由で全員が同じデータを見られます。';
-        if (meta.appUrl) {
-          const link = document.createElement('span');
-          link.innerHTML =
-            '<br/><span style="font-weight:600;color:var(--gray-700)">このページのURLを関係者に共有してください：</span> ';
-          const a = document.createElement('a');
-          a.href = meta.appUrl + '/';
-          a.textContent = meta.appUrl + '/';
-          a.style.color = 'var(--primary)';
-          el.appendChild(link);
-          el.appendChild(a);
+  function rebuildSlotRowsLocale() {
+    const container = $('#req-slot-rows');
+    const slots = collectSlotsFromForm(container);
+    container.innerHTML = '';
+    if (!slots.length) addSlotRow(container, {});
+    else slots.forEach((s) => addSlotRow(container, s));
+  }
+
+  function refreshStorageHintFromMeta() {
+    fetch('/api/meta')
+      .then((r) => r.json())
+      .then((meta) => {
+        const el = $('#storage-hint');
+        if (!el) return;
+        el.innerHTML = '';
+        if (meta.persistence === 'mongodb') {
+          el.textContent = tr('storageMongo');
+          if (meta.appUrl) {
+            const span = document.createElement('span');
+            span.innerHTML = `<br/><span style="font-weight:600;color:var(--gray-700)">${escapeHtml(tr('storageMongoSharePrefix'))}</span> `;
+            const a = document.createElement('a');
+            a.href = meta.appUrl + '/';
+            a.textContent = meta.appUrl + '/';
+            a.style.color = 'var(--primary)';
+            el.appendChild(span);
+            el.appendChild(a);
+          }
+        } else {
+          el.textContent = tr('storageLocal');
         }
-      } else {
-        el.textContent =
-          '開発モード：データはこのサーバー内の data/db.json に保存されています。社外から常時利用するには Render などに載せ、環境変数 MONGODB_URI（MongoDB Atlas）を設定してください。';
-      }
-    })
-    .catch(() => {
-      const el = $('#storage-hint');
-      if (el) el.textContent = 'サーバーに保存されます。';
-    });
+      })
+      .catch(() => {
+        const el = $('#storage-hint');
+        if (el) el.textContent = tr('storageFallback');
+      });
+  }
+
+  addSlotRow($('#req-slot-rows'), {});
+  applyStaticUi();
+
+  refreshStorageHintFromMeta();
 
   refreshState().catch(console.error);
 })();
