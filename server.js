@@ -216,6 +216,24 @@ app.patch('/api/requests/:id', (req, res) => {
     .catch((e) => res.status(400).json({ error: e.message }));
 });
 
+/** 終了済み依頼のみ削除可（申請中は不可） */
+app.delete('/api/requests/:id', (req, res) => {
+  const rid = parseInt(req.params.id, 10);
+  enqueueMutation(async () => {
+    const s = await readState();
+    const idx = s.requests.findIndex((x) => x.id === rid);
+    if (idx < 0) throw new Error('依頼が見つかりません。');
+    const r = s.requests[idx];
+    if (r.status === 'pending') {
+      throw new Error('申請中の依頼は一覧から削除できません。');
+    }
+    s.requests.splice(idx, 1);
+    await writeState(s);
+  })
+    .then(async () => res.json(await readState()))
+    .catch((e) => res.status(400).json({ error: e.message }));
+});
+
 function normalizeTime(t) {
   if (!t && t !== 0) return '';
   const s = String(t).trim();

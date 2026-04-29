@@ -284,6 +284,12 @@
 
     .hint { font-size: 12px; color: var(--gray-500); margin-top: 8px; line-height: 1.5; }
 
+    hr.site-section-rule {
+      margin: 20px 0;
+      border: none;
+      border-top: 1px solid var(--gray-200);
+    }
+
     .lang-bar {
       background: white;
       padding: 10px 16px;
@@ -414,32 +420,37 @@
 
     <section id="panel-site" class="tab-panel">
       <div class="card">
-        <div class="card-title" id="card-title-dept-extra">部署メニューの追加（プルダウン）</div>
-        <div class="form-grid">
-          <div class="form-group">
-            <label for="dept-add-ja" id="label-dept-ja">部署名（日本語）</label>
-            <input id="dept-add-ja" type="text" autocomplete="organization-title" />
+        <div id="site-block-dept-extra">
+          <div class="card-title" id="card-title-dept-extra">部署メニューの追加（プルダウン）</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="dept-add-ja" id="label-dept-ja">部署名（日本語）</label>
+              <input id="dept-add-ja" type="text" autocomplete="organization-title" />
+            </div>
+            <div class="form-group">
+              <label for="dept-add-vi" id="label-dept-vi">Tên bộ phận（Tiếng Việt）</label>
+              <input id="dept-add-vi" type="text" autocomplete="off" />
+            </div>
           </div>
-          <div class="form-group">
-            <label for="dept-add-vi" id="label-dept-vi">Tên bộ phận（Tiếng Việt）</label>
-            <input id="dept-add-vi" type="text" autocomplete="off" />
+          <button type="button" class="btn btn-primary btn-sm" id="dept-add-btn">追加</button>
+          <p class="hint" id="hint-dept-extra"></p>
+          <div id="dept-extra-list" class="master-tags" style="margin-top:12px;"></div>
+        </div>
+
+        <hr class="site-section-rule" />
+
+        <div id="site-block-main">
+          <div class="card-title" id="card-title-site">現場（公開済みシフトの確認・所属のメモ）</div>
+          <div class="toolbar">
+            <label style="margin:0;display:flex;align-items:center;gap:8px;">
+              <span id="label-site-date">対象日</span>
+              <input type="date" id="site-date" />
+            </label>
+            <button type="button" class="btn btn-primary btn-sm" id="site-save">所属メモを保存</button>
           </div>
+          <p class="hint" id="hint-site">シフト作成タブで「現場に公開」した日だけ、ここに一覧されます。部署プルダウンは現場担当がその人をどこで使うかのメモ用です。</p>
+          <div id="site-content"></div>
         </div>
-        <button type="button" class="btn btn-primary btn-sm" id="dept-add-btn">追加</button>
-        <p class="hint" id="hint-dept-extra"></p>
-        <div id="dept-extra-list" class="master-tags" style="margin-top:12px;"></div>
-      </div>
-      <div class="card">
-        <div class="card-title" id="card-title-site">現場（公開済みシフトの確認・所属のメモ）</div>
-        <div class="toolbar">
-          <label style="margin:0;display:flex;align-items:center;gap:8px;">
-            <span id="label-site-date">対象日</span>
-            <input type="date" id="site-date" />
-          </label>
-          <button type="button" class="btn btn-primary btn-sm" id="site-save">所属メモを保存</button>
-        </div>
-        <p class="hint" id="hint-site">シフト作成タブで「現場に公開」した日だけ、ここに一覧されます。部署プルダウンは現場担当がその人をどこで使うかのメモ用です。</p>
-        <div id="site-content"></div>
       </div>
     </section>
   </main>
@@ -536,6 +547,9 @@
       hrApprove: '承認／調整',
       hrRevision: '修正依頼',
       hrReject: '却下',
+      btnDeleteReqFromList: '一覧から削除',
+      confirmDeleteReqFromList:
+        'この依頼を一覧から削除しますか？（シフト表にある入力はそのままです）',
       adminNotePrefix: '管理者メモ:',
       hrEmpty: '該当する依頼はありません。',
       tblNameCode: '氏名 / コード',
@@ -638,6 +652,9 @@
       hrApprove: 'Duyệt / chỉnh',
       hrRevision: 'Yêu cầu sửa',
       hrReject: 'Từ chối',
+      btnDeleteReqFromList: 'Xóa khỏi danh sách',
+      confirmDeleteReqFromList:
+        'Xóa đơn này khỏi danh sách? (Ca trên lịch không bị xóa)',
       adminNotePrefix: 'Ghi chú QL:',
       hrEmpty: 'Không có đơn phù hợp.',
       tblNameCode: 'Họ tên / Mã',
@@ -797,10 +814,6 @@
     $('#sch-publish').textContent = tr('btnPublish');
     $('#sch-export-csv').textContent = tr('btnCsv');
     $('#hint-schedule').textContent = tr('hintSchedule');
-    $('#card-title-site').textContent = tr('card_site');
-    $('#label-site-date').textContent = tr('targetDate');
-    $('#site-save').textContent = tr('btnSiteSave');
-    $('#hint-site').textContent = tr('hintSite');
     $('#modal-title').textContent = tr('modalTitle');
     $('#modal-adjust-desc').textContent = tr('modalAdjustDesc');
     $('#modal-add-adjust').textContent = tr('modalAddRow');
@@ -809,11 +822,20 @@
     $('#modal-revision').textContent = tr('btnRevision');
     $('#modal-reject').textContent = tr('btnReject');
     $('#modal-close').textContent = tr('btnClose');
-    $('#card-title-dept-extra').textContent = tr('deptExtraCardTitle');
-    $('#label-dept-ja').textContent = tr('labelDeptJa');
-    $('#label-dept-vi').textContent = tr('labelDeptVi');
-    $('#dept-add-btn').textContent = tr('btnAdd');
-    $('#hint-dept-extra').textContent = tr('deptExtraHint');
+    ;[
+      ['card-title-dept-extra', 'deptExtraCardTitle'],
+      ['label-dept-ja', 'labelDeptJa'],
+      ['label-dept-vi', 'labelDeptVi'],
+      ['dept-add-btn', 'btnAdd'],
+      ['hint-dept-extra', 'deptExtraHint'],
+    ].forEach(([id, key]) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = tr(key);
+    });
+    $('#card-title-site').textContent = tr('card_site');
+    $('#label-site-date').textContent = tr('targetDate');
+    $('#site-save').textContent = tr('btnSiteSave');
+    $('#hint-site').textContent = tr('hintSite');
     syncLangControls();
   }
 
@@ -824,7 +846,14 @@
   }
   const N_HOURS = HOUR_LABELS.length;
 
-  let state = { workers: [], requests: [], schedules: {}, nextWorkerId: 1, nextRequestId: 1 };
+  let state = {
+    workers: [],
+    requests: [],
+    schedules: {},
+    extraDepartments: [],
+    nextWorkerId: 1,
+    nextRequestId: 1,
+  };
   let modalRequestId = null;
   let modalMode = 'approve';
 
@@ -841,6 +870,7 @@
 
   async function refreshState() {
     state = await api('GET', '/api/state');
+    if (!Array.isArray(state.extraDepartments)) state.extraDepartments = [];
     renderAll();
   }
 
@@ -958,7 +988,7 @@
             ? req.slots.map((s) => `${s.date} ${s.start}〜${s.end}`).join('\n')
             : tr('noSlots');
         const raw = req.rawNote ? `\n${tr('memoPrefix')} ${req.rawNote}` : '';
-        const actions =
+        const pendingActions =
           req.status === 'pending'
             ? `<div class="req-actions">
                 <button type="button" class="btn btn-primary btn-sm hr-open" data-id="${req.id}" data-act="approve">${escapeHtml(tr('hrApprove'))}</button>
@@ -966,17 +996,35 @@
                 <button type="button" class="btn btn-danger btn-sm hr-open" data-id="${req.id}" data-act="reject">${escapeHtml(tr('hrReject'))}</button>
               </div>`
             : '';
+        const closedActions =
+          req.status !== 'pending'
+            ? `<div class="req-actions">
+                <button type="button" class="btn btn-ghost btn-sm hr-del-req" data-id="${req.id}">${escapeHtml(tr('btnDeleteReqFromList'))}</button>
+              </div>`
+            : '';
         return `
           <div class="request-item">
             <div class="meta">#${req.id} · ${escapeHtml(name)} · ${badgeHtml(req)} · ${req.createdAt ? req.createdAt.slice(0, 16).replace('T', ' ') : ''}</div>
             <div class="body">${escapeHtml(slotsTxt)}${escapeHtml(raw)}</div>
             ${req.reviewerNote ? `<div class="hint">${escapeHtml(tr('adminNotePrefix'))} ${escapeHtml(req.reviewerNote)}</div>` : ''}
-            ${actions}
+            ${pendingActions}
+            ${closedActions}
           </div>`;
       })
       .join('');
     list.querySelectorAll('.hr-open').forEach((btn) => {
       btn.addEventListener('click', () => openModal(parseInt(btn.dataset.id, 10), btn.dataset.act));
+    });
+    list.querySelectorAll('.hr-del-req').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        if (!confirm(tr('confirmDeleteReqFromList'))) return;
+        try {
+          await api('DELETE', `/api/requests/${btn.dataset.id}`);
+          await refreshState();
+        } catch (e) {
+          alert(e.message || String(e));
+        }
+      });
     });
   }
 
