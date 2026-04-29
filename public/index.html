@@ -333,6 +333,17 @@
       border: 2px solid var(--primary);
       border-radius: var(--radius);
     }
+
+    /** アルバイト向け URL（ルート `/`）— 勤務希望パネルのみ表示（サーバー側ロックではない） */
+    body.worker-mode nav.tabs {
+      display: none;
+    }
+    body.worker-mode .tab-panel:not(#panel-request) {
+      display: none !important;
+    }
+    body.worker-mode #panel-request.tab-panel {
+      display: block !important;
+    }
   </style>
 </head>
 <body>
@@ -605,6 +616,8 @@
       alertDeptBothRequired: '日本語名とベトナム語名の両方を入力してください。',
       confirmDelDept:
         'この部署を削除しますか？この部署が選ばれていた現場メモは「未設定」に戻ります。',
+      pageSubWorker: 'このページからは勤務希望の送信のみ行えます。',
+      card_request_worker: '勤務希望フォーム',
     },
     vi: {
       pageTitle: 'Ca ngắn hạn · Quản lý ca làm',
@@ -710,8 +723,32 @@
       alertDeptBothRequired: 'Vui lòng nhập cả tên tiếng Nhật và tiếng Việt.',
       confirmDelDept:
         'Xóa bộ phận này? Các dòng đang chọn bộ phận đó sẽ trở về «Chưa chọn».',
+      pageSubWorker: 'Trang này chỉ để gửi mong muốn ca làm.',
+      card_request_worker: 'Đơn mong muốn ca làm',
     },
   };
+
+  function normalizedPathname() {
+    let p = window.location.pathname || '/';
+    if (p.endsWith('/index.html')) {
+      p = p.slice(0, -'/index.html'.length) || '/';
+    }
+    if (p.length > 1 && p.endsWith('/')) p = p.slice(0, -1);
+    return p || '/';
+  }
+  const IS_ADMIN_UI = normalizedPathname() === '/admin';
+
+  function initUiMode() {
+    if (IS_ADMIN_UI) return;
+    document.body.classList.add('worker-mode');
+    document.querySelectorAll('.tab-panel').forEach((p) => {
+      p.classList.toggle('active', p.id === 'panel-request');
+    });
+    document.querySelectorAll('.tab-btn').forEach((b) => {
+      b.classList.toggle('active', b.dataset.tab === 'request');
+    });
+  }
+  initUiMode();
 
   const LANG_KEY = 'short-shift-lang';
 
@@ -806,13 +843,13 @@
     document.documentElement.lang = lang === 'vi' ? 'vi' : 'ja';
     document.title = tr('pageTitle');
     $('#ui-page-title').textContent = tr('pageTitle');
-    $('#ui-page-sub').textContent = tr('pageSub');
+    $('#ui-page-sub').textContent = IS_ADMIN_UI ? tr('pageSub') : tr('pageSubWorker');
     $('#tab-request').textContent = tr('tab_request');
     $('#tab-hr-label').textContent = tr('tab_hr');
     $('#tab-master').textContent = tr('tab_master');
     $('#tab-schedule').textContent = tr('tab_schedule');
     $('#tab-site').textContent = tr('tab_site');
-    $('#card-title-request').textContent = tr('card_request');
+    $('#card-title-request').textContent = IS_ADMIN_UI ? tr('card_request') : tr('card_request_worker');
     $('#label-worker').textContent = tr('workerLabel');
     $('#card-slots-title').textContent = tr('slotSection');
     $('#req-add-slot').textContent = tr('addSlot');
@@ -993,6 +1030,8 @@
   }
 
   function renderHr() {
+    if (!IS_ADMIN_UI) return;
+
     const list = $('#hr-list');
     const pendingOnly = $('#hr-filter-pending').checked;
     const reqs = state.requests.filter((r) => !pendingOnly || r.status === 'pending');
@@ -1160,6 +1199,8 @@
   }
 
   function renderScheduleTable() {
+    if (!IS_ADMIN_UI) return;
+
     const dateStr = $('#sch-date').value;
     const sch = state.schedules[dateStr] || { cells: {}, published: false };
     $('#sch-published-banner').textContent = sch.published ? tr('bannerPublished') : '';
@@ -1312,6 +1353,8 @@
   };
 
   function renderSite() {
+    if (!IS_ADMIN_UI) return;
+
     const dateStr = $('#site-date').value;
     const sch = state.schedules[dateStr];
     const box = $('#site-content');
@@ -1345,6 +1388,8 @@
   }
 
   function renderDeptManagePanel() {
+    if (!IS_ADMIN_UI) return;
+
     const extras = Array.isArray(state.extraDepartments) ? state.extraDepartments : [];
     const listEl = $('#dept-extra-list');
     if (!listEl) return;
@@ -1387,6 +1432,7 @@
 
   function renderMaster() {
     renderWorkerSelect($('#req-worker'), true);
+    if (!IS_ADMIN_UI) return;
     const mw = $('#mw-list');
     mw.innerHTML = state.workers
       .slice()
@@ -1407,6 +1453,8 @@
   }
 
   function updateHrUnreadBadge() {
+    if (!IS_ADMIN_UI) return;
+
     const el = $('#hr-unread-badge');
     if (!el) return;
     const n = (state.requests || []).filter((r) => r.status === 'pending' && r.adminUnread !== false).length;
@@ -1437,7 +1485,7 @@
       document.querySelectorAll('.tab-panel').forEach((p) => p.classList.remove('active'));
       btn.classList.add('active');
       $('#panel-' + btn.dataset.tab).classList.add('active');
-      if (btn.dataset.tab === 'hr') {
+      if (btn.dataset.tab === 'hr' && IS_ADMIN_UI) {
         try {
           await api('POST', '/api/mark-hr-seen', {});
           await refreshState();

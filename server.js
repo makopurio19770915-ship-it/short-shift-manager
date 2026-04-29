@@ -85,6 +85,12 @@ async function writeState(body) {
 }
 
 app.use(express.json({ limit: '5mb' }));
+
+/** 管理者向けフル UI（アルバイト向けはルート `/` のみタブを表示） */
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/api/meta', (req, res) => {
