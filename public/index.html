@@ -158,13 +158,49 @@
     .form-group.full { grid-column: 1 / -1; }
     .slot-row {
       display: grid;
-      grid-template-columns: 1fr 100px 100px auto;
-      gap: 8px;
+      grid-template-columns: minmax(0, 1fr) 100px 100px auto;
+      gap: 8px 10px;
       align-items: end;
-      margin-bottom: 8px;
+      margin-bottom: 10px;
+    }
+    .slot-row > .form-group {
+      min-width: 0;
+    }
+    .slot-row > button.sl-remove {
+      align-self: end;
+      white-space: nowrap;
     }
     @media (max-width: 640px) {
-      .slot-row { grid-template-columns: 1fr 1fr; }
+      .slot-row {
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas:
+          'slot-date slot-date'
+          'slot-start slot-end'
+          'slot-remove slot-remove';
+        gap: 10px 12px;
+        align-items: start;
+        padding: 12px;
+        margin-bottom: 14px;
+        border: 1px solid var(--gray-200);
+        border-radius: var(--radius);
+        background: #fafafa;
+      }
+      .slot-row > .form-group:nth-child(1) {
+        grid-area: slot-date;
+      }
+      .slot-row > .form-group:nth-child(2) {
+        grid-area: slot-start;
+      }
+      .slot-row > .form-group:nth-child(3) {
+        grid-area: slot-end;
+      }
+      .slot-row > button:nth-child(4) {
+        grid-area: slot-remove;
+        width: 100%;
+        justify-self: stretch;
+        align-self: stretch;
+        margin-top: 2px;
+      }
     }
 
     .badge {
