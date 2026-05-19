@@ -615,6 +615,9 @@
       hrApprove: '承認／調整',
       hrRevision: '修正依頼',
       hrReject: '却下',
+      hrEditApproved: '承認内容を修正',
+      btnSaveApprovedEdit: '変更を保存',
+      modalTitleEditApproved: '承認済み依頼の修正',
       btnDeleteReqFromList: '一覧から削除',
       confirmDeleteReqFromList:
         'この依頼を一覧から削除しますか？（シフト表にある入力はそのままです）',
@@ -722,6 +725,9 @@
       hrApprove: 'Duyệt / chỉnh',
       hrRevision: 'Yêu cầu sửa',
       hrReject: 'Từ chối',
+      hrEditApproved: 'Sửa nội dung đã duyệt',
+      btnSaveApprovedEdit: 'Lưu thay đổi',
+      modalTitleEditApproved: 'Chỉnh sửa đơn đã duyệt',
       btnDeleteReqFromList: 'Xóa khỏi danh sách',
       confirmDeleteReqFromList:
         'Xóa đơn này khỏi danh sách? (Ca trên lịch không bị xóa)',
@@ -1128,9 +1134,13 @@
       .map((req) => {
         const w = workerById(req.workerId);
         const name = w ? `${w.code} ${w.name}` : `(ID ${req.workerId})`;
+        const slotsForDisplay =
+          req.status === 'approved' && req.adjustedSlots && req.adjustedSlots.length
+            ? req.adjustedSlots
+            : req.slots;
         const slotsTxt =
-          req.slots && req.slots.length
-            ? req.slots.map((s) => `${s.date} ${s.start}〜${s.end}`).join('\n')
+          slotsForDisplay && slotsForDisplay.length
+            ? slotsForDisplay.map((s) => `${s.date} ${s.start}〜${s.end}`).join('\n')
             : tr('noSlots');
         const raw = req.rawNote ? `\n${tr('memoPrefix')} ${req.rawNote}` : '';
         const pendingActions =
@@ -1141,9 +1151,14 @@
                 <button type="button" class="btn btn-danger btn-sm hr-open" data-id="${req.id}" data-act="reject">${escapeHtml(tr('hrReject'))}</button>
               </div>`
             : '';
+        const editApprovedBtn =
+          req.status === 'approved'
+            ? `<button type="button" class="btn btn-primary btn-sm hr-open" data-id="${req.id}" data-act="edit-approved">${escapeHtml(tr('hrEditApproved'))}</button>`
+            : '';
         const closedActions =
           req.status !== 'pending'
             ? `<div class="req-actions">
+                ${editApprovedBtn}
                 <button type="button" class="btn btn-ghost btn-sm hr-del-req" data-id="${req.id}">${escapeHtml(tr('btnDeleteReqFromList'))}</button>
               </div>`
             : '';
@@ -1185,7 +1200,14 @@
     const req = state.requests.find((r) => r.id === reqId);
     if (!req) return;
     modalRequestId = reqId;
-    modalMode = act === 'reject' ? 'reject' : act === 'revision' ? 'revision' : 'approve';
+    modalMode =
+      act === 'reject'
+        ? 'reject'
+        : act === 'revision'
+          ? 'revision'
+          : act === 'edit-approved'
+            ? 'edit-approved'
+            : 'approve';
     const w = workerById(req.workerId);
     const slotsLines =
       (req.slots || []).length > 0
@@ -1194,18 +1216,38 @@
     $('#modal-body').innerHTML = `<strong>${w ? `${escapeHtml(w.code)} ${escapeHtml(w.name)}` : ''}</strong><pre style="white-space:pre-wrap;margin-top:8px;font-size:13px;">${escapeHtml(slotsLines)}</pre>${req.rawNote ? `<p style="margin-top:8px;">${escapeHtml(tr('memoPrefix'))} ${escapeHtml(req.rawNote)}</p>` : ''}`;
     $('#modal-reviewer-note').value = req.reviewerNote || '';
     applyStaticUi();
+    const modalTitleEl = $('#modal-title');
+    if (modalTitleEl) {
+      modalTitleEl.textContent =
+        modalMode === 'edit-approved' ? tr('modalTitleEditApproved') : tr('modalTitle');
+    }
     const wrap = $('#modal-adjust-wrap');
     const rows = $('#modal-adjust-rows');
     rows.innerHTML = '';
-    const sourceSlots =
-      req.slots && req.slots.length ? req.slots : [{ date: '', start: '09:00', end: '18:00' }];
-    if (modalMode === 'approve' || modalMode === 'revision') {
+    const defaultSlot = { date: '', start: '09:00', end: '18:00' };
+    let sourceSlots;
+    if (modalMode === 'edit-approved') {
+      sourceSlots =
+        req.adjustedSlots && req.adjustedSlots.length
+          ? req.adjustedSlots
+          : req.slots && req.slots.length
+            ? req.slots
+            : [defaultSlot];
+    } else {
+      sourceSlots = req.slots && req.slots.length ? req.slots : [defaultSlot];
+    }
+    const showAdjust = modalMode === 'approve' || modalMode === 'revision' || modalMode === 'edit-approved';
+    if (showAdjust) {
       wrap.style.display = 'block';
       sourceSlots.forEach((s) => addAdjustRow(rows, s));
       $('#modal-add-adjust').onclick = () => addAdjustRow(rows, {});
     } else {
       wrap.style.display = 'none';
     }
+    const isEditApproved = modalMode === 'edit-approved';
+    $('#modal-revision').style.display = isEditApproved ? 'none' : '';
+    $('#modal-reject').style.display = isEditApproved ? 'none' : '';
+    $('#modal-approve').textContent = isEditApproved ? tr('btnSaveApprovedEdit') : tr('btnApproveFull');
     $('#modal-review').classList.add('open');
   }
 
@@ -1243,11 +1285,13 @@
   $('#modal-close').onclick = () => $('#modal-review').classList.remove('open');
   $('#modal-approve').onclick = async () => {
     const slots = collectAdjustSlots();
-    await patchRequest({
-      status: 'approved',
-      adjustedSlots: slots.length ? slots : undefined,
-      reviewerNote: $('#modal-reviewer-note').value.trim(),
-    });
+    if (modalMode === 'edit-approved' || modalMode === 'approve') {
+      await patchRequest({
+        status: 'approved',
+        adjustedSlots: slots.length ? slots : undefined,
+        reviewerNote: $('#modal-reviewer-note').value.trim(),
+      });
+    }
   };
   $('#modal-revision').onclick = async () => {
     await patchRequest({
